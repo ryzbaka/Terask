@@ -83,10 +83,25 @@ const App = ()=>{
     const [procInfo,setProcInfo] = useState(null)
     const [userInfo,setUserInfo] = useState(null)
     const [pageNumber,setPageNumber] = useState("0")
-    
+    function handlePageDown(){
+        if(Object.keys(pList).includes((parseInt(pageNumber)+1).toString())){
+            setPageNumber((parseInt(pageNumber)+1).toString())
+        }
+    }
+    function handlePageUp(){
+        if(Object.keys(pList).includes((parseInt(pageNumber)-1).toString())){
+            setPageNumber((parseInt(pageNumber)-1).toString())
+        }
+    }
     useInput((input,key)=>{
         if(input==='q'){
             process.exit()
+        }
+        if(key.upArrow || input=="k"){
+            handlePageUp()
+        }
+        if(key.downArrow || input=="j"){
+            handlePageDown()
         }
     })
     useEffect(()=>{
@@ -175,12 +190,14 @@ const App = ()=>{
                     </Box>
                     <Box width={stdout.cols}  height="100%" flexDirection="column">
                         <Text bold>Processes ({pCount})</Text>
-                        <Box><Text bold color="green">PID - Process</Text></Box>
+                        <Box><Text bold color="cyan">PID - Process</Text></Box>
                         {pList[pageNumber].map(el=><Box><Text>{el.pid} - {el.name}</Text></Box>)}
+                        <Text color="cyan">Page: {pageNumber}</Text>
                     </Box>
                 </Box>
                 <Box borderStyle="single">
                     <Text color="white" backgroundColor="red"> QUIT: q </Text>
+                    <Text color="white" backgroundColor="#A020F0" marginLeft={1}> SCROLL: j/k </Text>
                 </Box>
             </>
         :null

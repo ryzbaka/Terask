@@ -87,9 +87,25 @@ const App = () => {
   const [procInfo, setProcInfo] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [pageNumber, setPageNumber] = useState("0");
+  function handlePageDown() {
+    if (Object.keys(pList).includes((parseInt(pageNumber) + 1).toString())) {
+      setPageNumber((parseInt(pageNumber) + 1).toString());
+    }
+  }
+  function handlePageUp() {
+    if (Object.keys(pList).includes((parseInt(pageNumber) - 1).toString())) {
+      setPageNumber((parseInt(pageNumber) - 1).toString());
+    }
+  }
   useInput((input, key) => {
     if (input === 'q') {
       process.exit();
+    }
+    if (key.upArrow || input == "k") {
+      handlePageUp();
+    }
+    if (key.downArrow || input == "j") {
+      handlePageDown();
     }
   });
   useEffect(() => {
@@ -181,13 +197,19 @@ const App = () => {
     bold: true
   }, "Processes (", pCount, ")"), /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, {
     bold: true,
-    color: "green"
-  }, "PID - Process")), pList[pageNumber].map(el => /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, null, el.pid, " - ", el.name))))), /*#__PURE__*/React.createElement(Box, {
+    color: "cyan"
+  }, "PID - Process")), pList[pageNumber].map(el => /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, null, el.pid, " - ", el.name))), /*#__PURE__*/React.createElement(Text, {
+    color: "cyan"
+  }, "Page: ", pageNumber))), /*#__PURE__*/React.createElement(Box, {
     borderStyle: "single"
   }, /*#__PURE__*/React.createElement(Text, {
     color: "white",
     backgroundColor: "red"
-  }, " QUIT: q "))) : null;
+  }, " QUIT: q "), /*#__PURE__*/React.createElement(Text, {
+    color: "white",
+    backgroundColor: "#A020F0",
+    marginLeft: 1
+  }, " SCROLL: j/k "))) : null;
 };
 const leaveAltScreenCommand = "\x1b[?1049l";
 process.stdout.write('\x1b[?1049h\x1b[H\x1b[2J');
