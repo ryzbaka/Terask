@@ -4,6 +4,7 @@ import Gradient from "ink-gradient";
 import BigText from "ink-big-text";
 import osu from "node-os-utils";
 import os from "os";
+import psList from "ps-list";
 const mem = osu.mem;
 const cpu = osu.cpu;
 const osuos = osu.os;
@@ -53,17 +54,39 @@ function getOSInfo() {
   }
   return `${name} ${release}`;
 }
+async function getPrograms() {
+  const programs = await psList();
+  const result = {};
+  let count = 0;
+  let page = "0";
+  for (let i = 0; i < programs.length; i++) {
+    const program = programs[i];
+    if (count == 22) {
+      count = 0;
+      page = (parseInt(page) + 1).toString();
+    }
+    if (Object.keys(result).includes(page)) {
+      result[page].push(program);
+    } else {
+      result[page] = [program];
+    }
+    count += 1;
+  }
+  return result;
+}
 const App = () => {
   const {
     stdout
   } = useStdout();
   const [memInfo, setMemInfo] = useState(null);
   const [uptime, setUptime] = useState(null);
-  const [osInfo, setOsInfo] = useState(null);
+  const [pList, setPlist] = useState([]);
+  const [pCount, setPCount] = useState(0);
   const [cpuUsage, setCpuUsage] = useState(null);
   const [diskInfo, setDiskInfo] = useState(null);
   const [procInfo, setProcInfo] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
+  const [pageNumber, setPageNumber] = useState("0");
   useInput((input, key) => {
     if (input === 'q') {
       process.exit();
@@ -71,6 +94,8 @@ const App = () => {
   });
   useEffect(() => {
     const timeLoop = setInterval(async () => {
+      setPCount((await psList()).length);
+      setPlist(await getPrograms());
       setUptime(osuos.uptime());
       setCpuUsage(await cpu.usage());
       getDiskUsage((error, data) => {
@@ -87,7 +112,7 @@ const App = () => {
       clearInterval(timeLoop);
     };
   }, []);
-  return memInfo && diskInfo ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Box, {
+  return memInfo && diskInfo && pList ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Box, {
     height: stdout.rows - 4,
     borderStyle: "single",
     flexDirection: "column"
@@ -113,29 +138,29 @@ const App = () => {
     width: stdout.cols
   }, /*#__PURE__*/React.createElement(Box, {
     width: "50%",
-    height: 10,
+    height: 7,
     borderStyle: "single",
     flexDirection: "column"
   }, /*#__PURE__*/React.createElement(Text, {
     underline: true,
     bold: true
-  }, "Memory"), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Memory Usage:", /*#__PURE__*/React.createElement(Text, {
+  }, "Memory"), /*#__PURE__*/React.createElement(Text, null, "Memory Usage:", /*#__PURE__*/React.createElement(Text, {
     bold: true,
     color: memInfo["usedMemPercentage"] > 90 ? "red" : memInfo["usedMemPercentage"] > 50 ? "yellow" : "red"
-  }, " ", JSON.stringify(memInfo["usedMemPercentage"]), "%")), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Total Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["totalMemMb"]))), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Free Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["freeMemMb"]))), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Used Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["usedMemMb"])))), /*#__PURE__*/React.createElement(Box, {
+  }, " ", JSON.stringify(memInfo["usedMemPercentage"]), "%")), /*#__PURE__*/React.createElement(Text, null, "Total Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["totalMemMb"]))), /*#__PURE__*/React.createElement(Text, null, "Free Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["freeMemMb"]))), /*#__PURE__*/React.createElement(Text, null, "Used Memory(Mb):", /*#__PURE__*/React.createElement(Text, null, " ", JSON.stringify(memInfo["usedMemMb"])))), /*#__PURE__*/React.createElement(Box, {
     width: "50%",
-    height: 10,
+    height: 7,
     borderStyle: "single",
     flexDirection: "column"
   }, /*#__PURE__*/React.createElement(Text, {
     underline: true,
     bold: true
-  }, "CPU"), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "CPU Used:", /*#__PURE__*/React.createElement(Text, {
+  }, "CPU"), /*#__PURE__*/React.createElement(Text, null, "CPU Used:", /*#__PURE__*/React.createElement(Text, {
     bold: true,
     color: cpuUsage > 90 ? "red" : cpuUsage > 50 ? "yellow" : "green"
-  }, " ", cpuUsage, "%")), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Model: ", cpu.model()), /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Count: ", cpu.count()), /*#__PURE__*/React.createElement(Spacer, null)), /*#__PURE__*/React.createElement(Box, {
+  }, " ", cpuUsage, "%")), /*#__PURE__*/React.createElement(Text, null, "Model: ", cpu.model()), /*#__PURE__*/React.createElement(Text, null, "Count: ", cpu.count())), /*#__PURE__*/React.createElement(Box, {
     width: "50%",
-    height: 10,
+    height: 7,
     borderStyle: "single",
     flexDirection: "column"
   }, /*#__PURE__*/React.createElement(Text, {
@@ -144,11 +169,20 @@ const App = () => {
   }, "Disk"), diskInfo.map(el => {
     const data = el.split(" ").filter(x => x.length > 0);
     const usePerc = parseInt(data[1]) / parseInt(data[2]) * 100;
-    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Spacer, null), /*#__PURE__*/React.createElement(Text, null, "Disk ", data[0], " ", /*#__PURE__*/React.createElement(Text, {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Text, null, "Disk ", data[0], " ", /*#__PURE__*/React.createElement(Text, {
       bold: true,
       color: usePerc > 90 ? "red" : usePerc > 50 ? "yellow" : "green"
     }, usePerc, "%")));
-  }), /*#__PURE__*/React.createElement(Spacer, null))), /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, null, "OK"))), /*#__PURE__*/React.createElement(Box, {
+  }))), /*#__PURE__*/React.createElement(Box, {
+    width: stdout.cols,
+    height: "100%",
+    flexDirection: "column"
+  }, /*#__PURE__*/React.createElement(Text, {
+    bold: true
+  }, "Processes (", pCount, ")"), /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, {
+    bold: true,
+    color: "green"
+  }, "PID - Process")), pList[pageNumber].map(el => /*#__PURE__*/React.createElement(Box, null, /*#__PURE__*/React.createElement(Text, null, el.pid, " - ", el.name))))), /*#__PURE__*/React.createElement(Box, {
     borderStyle: "single"
   }, /*#__PURE__*/React.createElement(Text, {
     color: "white",
